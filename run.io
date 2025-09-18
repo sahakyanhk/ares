@@ -3,5 +3,8 @@ python ares.py --nobackup -iseq randoms --random_seq_len 50  -o test -ps 100 -ng
 
 python arestools.py -l test/progress.log -o test
 
-
+TODO:
 RNAplot
+rfam seq legth distribution
+rfam SS energy and alignment score distribution for fitness score correction
+
