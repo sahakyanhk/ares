@@ -3,8 +3,16 @@ python ares.py --nobackup -iseq randoms --random_seq_len 50  -o test -ps 100 -ng
 
 python arestools.py -l test/progress.log -o test
 
-TODO:
-RNAplot
-rfam seq legth distribution
-rfam SS energy and alignment score distribution for fitness score correction
+RNAplot --layout=1 -f svg -i input.txt
 
+input.txt """
+>tmp_rna
+GUCUAGGCGAUUCAGAUAUAUGUGUUAUGUGGGAUGGGUUACGAACCAUG
+.(((((.(.((((..(((((.....))))).)))).).))).))......
+>tmp_rna2
+GUCUAGGCGAUUCAGAUAAAUAUGUAGUUAUAAGUGGGAUGGGUUACGAACCAUGA
+.(((((.(.((((..((..(((......)))..)).)))).).))).)).......
+"""
+
+normalize score and energy by sequence length
+RNAplot
