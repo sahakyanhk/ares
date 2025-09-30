@@ -1,8 +1,21 @@
 # ARES: aproximated RNA evolution simulator
 
+
 ### Installation
 
-Dependancies
+Install ependencies
 
-conda install viennarna[https://github.com/ViennaRNA/ViennaRNA?tab=readme-ov-file#installation]
-conda install -c bioconda infernal[http://eddylab.org/infernal]
+(ViennaRNA)[https://github.com/ViennaRNA/ViennaRNA?tab=readme-ov-file#installation]
+conda install viennarna
+
+(Infernal)[[http://eddylab.org/infernal]]
+conda install -c bioconda infernal
+
+Downlaod code and prepare Rfam database
+```
+wget https://github.com/sahakyanhk/ares/archive/refs/heads/main.zip -O ares.zip; unzip ares.zip
+
+bash ares/src/make_rfam_db
+
+python src/ares.py
+```
