@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+mkdir rfam
+
+wget https://ftp.ebi.ac.uk/pub/databases/Rfam/CURRENT/Rfam.cm.gz
+
