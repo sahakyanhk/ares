@@ -18,10 +18,10 @@ def rnafold(rnaseq):
 	else:
 		print("The input should be eather string or list of strings")
 		
-def rna_seq_search(headers, sequences):
+def rna_seq_search(headers, sequences, tmp):
 
 	# run cmscan and read search results
-	tmp = "tmp" #+ str(uuid.uuid4())
+	#tmp = "tmp" #+ str(uuid.uuid4())
 	os.makedirs(tmp, exist_ok=True)
 
 

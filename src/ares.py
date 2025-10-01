@@ -92,6 +92,8 @@ def extract_results(gen_i, headers, sequences, secondary_structures, energies, r
     
 def fold_evolver(args, evolver, logheader, init_gen) -> None: 
 
+    tmp = args.outpath + "/tmp"
+
     os.makedirs(args.outpath, exist_ok=True)
     with open(os.path.join(args.outpath, args.log), 'w') as f:
         f.write(logheader)
@@ -153,7 +155,7 @@ def fold_evolver(args, evolver, logheader, init_gen) -> None:
         #predict data for the new batch
         for headers, sequences in batched_sequences:
             secondary_structures, energies  = rnafold(sequences) # type: ignore
-            rfam_score_list, rfam_id_list, target_name_list = rna_seq_search(headers, sequences) # data is sorted in the same order as headers
+            rfam_score_list, rfam_id_list, target_name_list = rna_seq_search(headers, sequences, tmp) # data is sorted in the same order as headers
 
             #run extract_results() in beckground and imediately start next the round of model.infer()
             trd = threading.Thread(target=extract_results, \
@@ -173,8 +175,8 @@ def fold_evolver(args, evolver, logheader, init_gen) -> None:
         init_gen.to_csv(os.path.join(args.outpath, args.log), mode='a', index=False, header=False, sep='\t')
 
  
-#================================FOLD_EVOLVER================================# 
-#============================================================================# 
+#================================FOLD_EVOLVER================================#
+#============================================================================#
 
 
 if __name__ == '__main__':
@@ -309,7 +311,7 @@ if __name__ == '__main__':
                                  'sequence': [args.initial_seq] * args.pop_size,
                                  'score': [1e-99] * args.pop_size})
         
-    init_gen["ss"], init_gen["energy"] = rnafold(list(init_gen.sequence))  
+    init_gen["ss"], init_gen["energy"] = rnafold(list(init_gen.sequence))   # type: ignore
     init_gen["seq_len"] = [len(seq) for seq in init_gen.sequence]
     init_gen["num_conts"] = [ss.count("(") for ss in init_gen.ss]
 

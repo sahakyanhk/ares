@@ -10,7 +10,10 @@ from matplotlib.lines import Line2D
 from matplotlib import colors
 import matplotlib.cm as cm
 
-import RNA # pyright: ignore[reportMissingImports]
+import cairosvg 
+from moviepy import ImageClip, concatenate_videoclips
+
+import RNA
 
 import warnings
 
@@ -115,7 +118,7 @@ def make_summary_plot(log, bestlog, lineage):
 
     fig, axs = plt.subplots(3,2, figsize=(10, 8))
 
-    fig.suptitle("")
+    fig.suptitle(None) # type: ignore
 
     L = len(lineage)
     axs[0,0].plot(log.energy, '.', markersize=ms,    color='silver', label='all mutations')
@@ -181,7 +184,9 @@ def make_ss_plot(lineage):
     ss = list(lineage.ss)
 
     def parse_stems(dotbracket):
+
         """Return stems as lists of paired indices [(i,j), ...]"""
+
         stack = []
         pairs = []
         for i, c in enumerate(dotbracket):
@@ -237,10 +242,7 @@ def make_ss_plot(lineage):
     ax.axis("tight")
     plt.savefig(os.path.join(outdir,'Secondary_structures.png'), dpi=dpi) 
 
-
 #======================= seconday structure movie =======================#
-import cairosvg
-from moviepy import ImageClip, concatenate_videoclips
 
 def meke_ss_movie(lineage): 
     if os.path.exists(tmp):
@@ -271,7 +273,6 @@ def meke_ss_movie(lineage):
                                         bg_color=(255, 255, 255))
     concat_clip.write_videofile(f'{outdir}/rne_evolution_movie.mp4', 24)
 
-
 #======================= functions end here =======================#
 
 outdir = args.outdir 
@@ -298,14 +299,14 @@ lineage.to_csv(os.path.join(outdir, 'lineage.tsv'), sep='\t', index=False, heade
 
 if args.noplots:
 
-    # print('making summary plot')
-    # make_summary_plot(log, bestlog, lineage)
+    print('making summary plot')
+    make_summary_plot(log, bestlog, lineage)
 
-    # print('making plots')
-    # make_plots(log, bestlog, lineage)
+    print('making plots')
+    make_plots(log, bestlog, lineage)
 
-    # print('making secondary structure plot')
-    # make_ss_plot(lineage)
+    print('making secondary structure plot')
+    make_ss_plot(lineage)
     
     print('making secondary structure movie')
     meke_ss_movie(lineage)
