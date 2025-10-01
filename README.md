@@ -3,13 +3,13 @@
 
 ### Installation
 
-Install dependencies
+Install dependencies:
 
 [ViennaRNA](https://github.com/ViennaRNA/ViennaRNA?tab=readme-ov-file#installation)\
-conda install viennarna
+`conda install viennarna`
 
 [Infernal](http://eddylab.org/infernal)\
-conda install -c bioconda infernal
+`conda install -c bioconda infernal`
 
 Download code and prepare Rfam database
 ```
