@@ -1,6 +1,0 @@
->tmp_rna
-GUCUAGGCGAUUCAGAUAUAUGUGUUAUGUGGGAUGGGUUACGAACCAUG
-.(((((.(.((((..(((((.....))))).)))).).))).))......
->tmp_rna2
-GUCUAGGCGAUUCAGAUAAAUAUGUAGUUAUAAGUGGGAUGGGUUACGAACCAUGA
-.(((((.(.((((..((..(((......)))..)).)))).).))).)).......

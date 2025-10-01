@@ -10,6 +10,7 @@ from matplotlib.lines import Line2D
 from matplotlib import colors
 import matplotlib.cm as cm
 
+import RNA # pyright: ignore[reportMissingImports]
 
 import warnings
 
@@ -114,7 +115,7 @@ def make_summary_plot(log, bestlog, lineage):
 
     fig, axs = plt.subplots(3,2, figsize=(10, 8))
 
-    fig.suptitle(None)
+    fig.suptitle("")
 
     L = len(lineage)
     axs[0,0].plot(log.energy, '.', markersize=ms,    color='silver', label='all mutations')
@@ -169,7 +170,6 @@ def make_summary_plot(log, bestlog, lineage):
     fig.tight_layout()
     fig.savefig(os.path.join(outdir,'Summary.png'), dpi=dpi)
 
-
 #======================= seconday structure plot =======================#
 
 def make_ss_plot(lineage):
@@ -209,7 +209,7 @@ def make_ss_plot(lineage):
 
     for y, struct in enumerate(ss):
         stems = parse_stems(struct)
-        colors = cm.tab20(np.linspace(0,1,len(stems)))  # distinct colors
+        colors = cm.tab20(np.linspace(0,1,len(stems)))  # type: ignore # distinct colors
         color_map = {}
 
         # assign color to each position in stems
@@ -238,14 +238,50 @@ def make_ss_plot(lineage):
     plt.savefig(os.path.join(outdir,'Secondary_structures.png'), dpi=dpi) 
 
 
+#======================= seconday structure movie =======================#
+import cairosvg
+from moviepy import ImageClip, concatenate_videoclips
+
+def meke_ss_movie(lineage): 
+    if os.path.exists(tmp):
+        shutil.rmtree(tmp)
+    
+    os.makedirs(tmp_svg, exist_ok=True)
+    os.makedirs(tmp_png, exist_ok=True)
+
+    sequences = list(lineage.sequence)
+    secondary_structres = list(lineage.ss)
+
+    assert len(sequences) == len(secondary_structres)
+
+    i=0
+    for seq, ss in zip(sequences, secondary_structres): 
+        
+        RNA.plot_structure_svg(f"{tmp_svg}rna{i}.svg", seq, ss)
+        cairosvg.svg2png(url=f"{tmp_svg}rna{i}.svg", write_to=f"{tmp_png}rna{i}.png")
+    
+        i+=1
+
+    
+    clips = [ImageClip(tmp_png + m).with_duration(0.1)
+           for m in sorted_alphanumeric(os.listdir(tmp_png))]
+             
+    concat_clip = concatenate_videoclips(clips, 
+                                        method="compose", 
+                                        bg_color=(255, 255, 255))
+    concat_clip.write_videofile(f'{outdir}/rne_evolution_movie.mp4', 24)
+
+
+#======================= functions end here =======================#
 
 outdir = args.outdir 
 os.makedirs(outdir, exist_ok=True)
-
 plotdir = os.path.join(outdir, 'plots/')
+tmp = os.path.join(outdir, 'tmp/')
+tmp_svg = os.path.join(outdir, 'tmp/svg/')
+tmp_png = os.path.join(outdir, 'tmp/png/')
 
 log = pd.read_csv(args.log, sep='\t', comment='#')
-
 log = log.iloc[args.start:args.end]
 
 bestlog = log.groupby('gndx').head(1)
@@ -258,15 +294,21 @@ lineage.to_csv(os.path.join(outdir, 'lineage.tsv'), sep='\t', index=False, heade
 
 
 
+
+
 if args.noplots:
-    print('making plots')
-    make_plots(log, bestlog, lineage)
 
-    print('making summary plot')
-    make_summary_plot(log, bestlog, lineage)
+    # print('making summary plot')
+    # make_summary_plot(log, bestlog, lineage)
 
-    #print('making secondary structure plot')
-    make_ss_plot(lineage)
+    # print('making plots')
+    # make_plots(log, bestlog, lineage)
 
+    # print('making secondary structure plot')
+    # make_ss_plot(lineage)
+    
+    print('making secondary structure movie')
+    meke_ss_movie(lineage)
 
 print('=================================='"\n")
+
