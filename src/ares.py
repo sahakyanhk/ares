@@ -65,7 +65,7 @@ def extract_results(gen_i, headers, sequences, secondary_structures, energies, r
         gc_cont = round(((seq.count('C') + seq.count('G')) / seq_len )* 100, 2)
         num_conts = ss.count("(")
         #score = num_conts / seq_len * energy
-        score = rfam_score - (energy / 2) 
+        score = (rfam_score - 0.5 * energy) / seq_len
         #================================SCORING================================#
         #=======================================================================# 
 
@@ -152,7 +152,7 @@ def fold_evolver(args, evolver, logheader, init_gen) -> None:
 
         #predict data for the new batch
         for headers, sequences in batched_sequences:
-            secondary_structures, energies  = rnafold(sequences)
+            secondary_structures, energies  = rnafold(sequences) # type: ignore
             rfam_score_list, rfam_id_list, target_name_list = rna_seq_search(headers, sequences) # data is sorted in the same order as headers
 
             #run extract_results() in beckground and imediately start next the round of model.infer()
@@ -297,18 +297,22 @@ if __name__ == '__main__':
         randomsequence = evolver.randomseq(args.random_seq_len)
         init_gen = pd.DataFrame({'id': ['initseq'] * args.pop_size, 
                                  'sequence': [randomsequence] * args.pop_size,
-                                 'score': [0.001] * args.pop_size})
+                                 'score': [1e-99] * args.pop_size})
     elif args.initial_seq == 'randoms':
         init_gen = pd.DataFrame({'id': [f'initseq{i}' for i in range(args.pop_size)], 
                                  'sequence': [evolver.randomseq(args.random_seq_len) for i in range(args.pop_size)],
-                                 'score': [0.001] * args.pop_size})
+                                 'score': [1e-99] * args.pop_size})
     #elif args.initial_seq == 'c':
     #    init_gen = pd.read_csv('test.chk', sep='\t')
     else: 
         init_gen = pd.DataFrame({'id': ['initseq'] * args.pop_size, 
                                  'sequence': [args.initial_seq] * args.pop_size,
-                                 'score': [0.001] * args.pop_size})
-    
+                                 'score': [1e-99] * args.pop_size})
+        
+    init_gen["ss"], init_gen["energy"] = rnafold(list(init_gen.sequence))  
+    init_gen["seq_len"] = [len(seq) for seq in init_gen.sequence]
+    init_gen["num_conts"] = [ss.count("(") for ss in init_gen.ss]
+
 
     print('running RFES... \n')
     if args.evolution_mode == "single_chain":
