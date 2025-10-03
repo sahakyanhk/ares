@@ -32,9 +32,10 @@ def rna_seq_search(headers, sequences, tmp):
 	
 	infernal_command = [
 		'cmscan',
-		'--cpu', '10',
+		'--cpu', '24',
 		'--tblout', f'{tmp}/results.tbl',
-		'--rfam', 'rfam/Rfam.cm',
+		'--rfam', 
+		'rfam/Rfam.cm',
 		f'{tmp}/query.fa'
 	]
 
@@ -48,12 +49,15 @@ def rna_seq_search(headers, sequences, tmp):
 	scores = {}
 	rfams = {}
 	target_names = {}
+	evalues = {}
 
 	for line in open(f'{tmp}/results.tbl'): 
 		if line.startswith("#"):
 			continue
 		splited_line = line.split()
+		#print(splited_line)
 		score = float(splited_line[14])
+		evalue = float(splited_line[15])
 		id = splited_line[2]
 		rfam = splited_line [1]
 		target_name = splited_line[0]
@@ -63,25 +67,31 @@ def rna_seq_search(headers, sequences, tmp):
 				scores[id] = score  
 				rfams[id] = rfam
 				target_names[id] = target_name
+				evalues[id] = evalue
 		else:
 			scores[id] = score  
 			rfams[id] = rfam
 			target_names[id] = target_name
+			evalues[id] = evalue
+
 
 	# create a sorted list and add 0/None if a query does not have a hit
 	score_list = []
 	rfam_list = []
 	target_name_list = []
+	eval_list = []
 
 	for header in headers:
 		if header in scores:
 			score_list.append(scores[header])
 			rfam_list.append(rfams[header])
 			target_name_list.append(target_names[header])
+			eval_list.append(evalues[header])
 		else:
 			score_list.append(0)
 			rfam_list.append("-")
 			target_name_list.append("-")
+			eval_list.append(10)
 
 	#os.removedirs('tmp')
-	return score_list, rfam_list, target_name_list
+	return score_list, eval_list, rfam_list, target_name_list
