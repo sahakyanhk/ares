@@ -1,13 +1,14 @@
 import os
 import sys
 import shutil
+import numpy as np
 import pandas as pd
 import argparse
 import typing as T
 import threading
-import gzip
 import time
 from datetime import datetime
+
 
 from evolution import Evolver
 from rnautils import rnafold, rna_seq_search
@@ -43,11 +44,11 @@ def create_batched_rna_sequence_dataset(sequences: T.List[T.Tuple[str, str]], ma
     yield batch_headers, batch_sequences
 
 
-def extract_results(gen_i, headers, sequences, secondary_structures, energies, rfam_score_list, rfam_id_list, target_name_list) -> None:
+def extract_results(gen_i, headers, sequences, secondary_structures, energies, rfam_score_list, rfam_evalue_list, rfam_id_list, target_name_list) -> None:
     global new_gen #this will be modified in the fold_evolver()
 
-    for meta_id, seq, ss, energy, rfam_score, rfam_id, rfam_name in \
-        zip(headers, sequences, secondary_structures, energies, rfam_score_list, rfam_id_list, target_name_list):
+    for meta_id, seq, ss, energy, rfam_score, rfam_evalue, rfam_id, rfam_name in \
+        zip(headers, sequences, secondary_structures, energies, rfam_score_list, rfam_evalue_list, rfam_id_list, target_name_list):
         
         all_seqs = seq.split(':')
         seq = all_seqs[0]
@@ -58,14 +59,14 @@ def extract_results(gen_i, headers, sequences, secondary_structures, energies, r
         id = id_data[0]
         prev_id = id_data[1]
         mutation = id_data[2]
-
+        
         #=======================================================================# 
         #================================SCORING================================# 
 
         gc_cont = round(((seq.count('C') + seq.count('G')) / seq_len )* 100, 2)
         num_conts = ss.count("(")
-        #score = num_conts / seq_len * energy
-        score = (rfam_score - 0.5 * energy) / seq_len
+        rscore = rfam_score * np.exp(-rfam_evalue)
+        score = rscore/seq_len + -energy/seq_len
         #================================SCORING================================#
         #=======================================================================# 
 
@@ -155,11 +156,11 @@ def fold_evolver(args, evolver, logheader, init_gen) -> None:
         #predict data for the new batch
         for headers, sequences in batched_sequences:
             secondary_structures, energies  = rnafold(sequences) # type: ignore
-            rfam_score_list, rfam_id_list, target_name_list = rna_seq_search(headers, sequences, tmp) # data is sorted in the same order as headers
+            rfam_score_list, rfam_evalue_list, rfam_id_list, target_name_list = rna_seq_search(headers, sequences, tmp) # data is sorted in the same order as headers
 
             #run extract_results() in beckground and imediately start next the round of model.infer()
             trd = threading.Thread(target=extract_results, \
-                        args=(gen_i, headers, sequences, secondary_structures, energies, rfam_score_list, rfam_id_list, target_name_list))
+                        args=(gen_i, headers, sequences, secondary_structures, energies, rfam_score_list, rfam_evalue_list, rfam_id_list, target_name_list))
             trd.start()
 
         print(new_gen.tail(args.pop_size).drop(columns=['gndx','ss'],
