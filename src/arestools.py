@@ -272,6 +272,8 @@ def meke_ss_movie(lineage):
                                         method="compose", 
                                         bg_color=(255, 255, 255))
     concat_clip.write_videofile(f'{outdir}/rne_evolution_movie.mp4', 24)
+    
+    shutil.rmtree(tmp)
 
 #======================= functions end here =======================#
 
