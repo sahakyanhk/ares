@@ -43,6 +43,11 @@ def create_batched_rna_sequence_dataset(sequences: T.List[T.Tuple[str, str]], ma
            batch_headers, batch_sequences, num_sequences= [], [], 0
     yield batch_headers, batch_sequences
 
+def sigmoid(x,L0=0,c=0.1):
+    return 1 / (1+2.718281828459045**(c * (L0-x)))
+
+#==================================================================================#
+#================================ RESULT PROCESSING ===============================#
 
 def extract_results(gen_i, headers, sequences, secondary_structures, energies, rfam_score_list, rfam_evalue_list, rfam_id_list, target_name_list) -> None:
     global new_gen #this will be modified in the fold_evolver()
@@ -59,15 +64,30 @@ def extract_results(gen_i, headers, sequences, secondary_structures, energies, r
         id = id_data[0]
         prev_id = id_data[1]
         mutation = id_data[2]
-        
-        #=======================================================================# 
-        #================================SCORING================================# 
 
         gc_cont = round(((seq.count('C') + seq.count('G')) / seq_len )* 100, 2)
         num_conts = ss.count("(")
-        rscore = rfam_score * np.exp(-rfam_evalue)
-        score = rscore/seq_len + -energy/seq_len
-        #================================SCORING================================#
+        
+        #=======================================================================# 
+        #=============================== SCORING ===============================# 
+
+
+        def norm_rfam_score(evalue, score, tau=100):
+            if score == 0:
+                return 0
+            else:
+                sigma = np.log10(1 + 1/evalue)
+                combined = score * sigma
+                score = 1 - np.exp(-combined / tau)
+                return score
+
+        norm_energy = sigmoid(-energy, 30, 0.1) #/ seq_len
+        norm_rscore = norm_rfam_score(rfam_evalue, rfam_score) 
+        
+        score = norm_energy  + norm_rscore #/seq_len 
+                
+
+        #=============================== SCORING ===============================#
         #=======================================================================# 
 
         iterlog = pd.DataFrame({'gndx': gen_i,
@@ -77,9 +97,10 @@ def extract_results(gen_i, headers, sequences, secondary_structures, energies, r
                                 'sel_mode': args.selection_mode,
                                 'beta': args.beta,
                                 'energy': round(energy, 3), 
-                                'rfam_score': rfam_score,
                                 'rfam_id': rfam_id,
                                 'rfam_name': rfam_name,
+                                'rfam_score': rfam_score,
+                                'rfam_evalue': rfam_evalue,
                                 'gc_cont': gc_cont,
                                 'score': round(score, 3),
                                 'sequence': seq, 
@@ -90,7 +111,14 @@ def extract_results(gen_i, headers, sequences, secondary_structures, energies, r
         
         new_gen = pd.concat([new_gen, iterlog], axis=0, ignore_index=True) 
 
-    
+#=============================== RESULT PROCESSING ================================#
+#==================================================================================#
+
+
+#==================================================================================#
+#=================================== RNA EVOLVER ==================================#
+
+
 def fold_evolver(args, evolver, logheader, init_gen) -> None: 
 
     tmp = args.outpath + "/tmp"
@@ -108,9 +136,10 @@ def fold_evolver(args, evolver, logheader, init_gen) -> None:
               'sel_mode',
               'beta',
               'energy',
-              'rfam_score',
               'rfam_id',
               'rfam_name',
+              'rfam_score',
+              'rfam_evalue',
               'gc_cont',
               'score',
               'sequence',
@@ -176,78 +205,26 @@ def fold_evolver(args, evolver, logheader, init_gen) -> None:
         init_gen.to_csv(os.path.join(args.outpath, args.log), mode='a', index=False, header=False, sep='\t')
 
  
-#================================FOLD_EVOLVER================================#
+#================================ RNA EVOLVER ===============================#
 #============================================================================#
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-            description='Sample sequences based on a given structure.'
-    )
-    parser.add_argument(
-            '-em', '--evolution_mode', type=str,
-            help='evolution mode: single_chain, inter_chain, multimer',
-            default='single_chain',
-    )
-    parser.add_argument(
-            '-sm', '--selection_mode', type=str,
-            help='selection mode\n options: strong, weak ',
-            default="weak"
-    )
-    parser.add_argument(
-            '-b', '--beta', type=float,
-            help='selection strength',
-            default=1,
-    )
-    parser.add_argument(
-            '-iseq', '--initial_seq', type=str,
-            help='a sequence to initiate with, if "random" pop_size random sequences will ' \
-            'be generated, the length of the random sequences can be assigned with "--random_seq_len"',
-            default='random'
-    )
-    parser.add_argument(
-            '-l', '--log', type=str,
-            help='log output',
-            default='progress.log',
-    )   
-    parser.add_argument(
-            '-o' ,'--outpath', type=str,
-            help='output filepath for saving sampled sequences',
-            default='output',
-    )
-    parser.add_argument(
-            '-ng', '--num_generations', type=int,
-            help='number of generations',
-            default=100,
-    )
-    parser.add_argument(
-            '-ps', '--pop_size', type=int,
-            help='population size',
-            default=10,
-    )
-    parser.add_argument(
-            '--max_seq_per_batch', type=int,
-            help='population size',
-            default=50,
-    )
-    parser.add_argument(
-            '-ed', '--evoldict', type=str,
-            help='population size',
-            default='flatrates',
-    )
-    parser.add_argument(
-            '--random_seq_len', type=int,
-            help='a sequence to initiate with',
-            default=24,
-    )
-    parser.add_argument(                      
-            '--norepeat', action='store_true', 
-            help='do not generate and/or select the same sequences more than once', 
-    )
-    parser.add_argument(
-            '--nobackup', action='store_true', 
-            help='overwrite files if exists',
-    )
+    parser = argparse.ArgumentParser(description='Sample sequences based on a given structure.')
+    parser.add_argument('-em', '--evolution_mode', type=str, help='evolution mode: single_chain, inter_chain, multimer', default='single_chain')
+    parser.add_argument('-sm', '--selection_mode', type=str, help='selection mode\n options: strong, weak ', default="weak")
+    parser.add_argument('-b', '--beta', type=float, help='selection strength', default=1)
+    parser.add_argument('-iseq', '--initial_seq', type=str, help='a sequence to initiate with, if "random" pop_size random sequences will \
+                        be generated, the length of the random sequences can be assigned with "--random_seq_len"', default='random')
+    parser.add_argument('-l', '--log', type=str, help='log output', default='progress.log')   
+    parser.add_argument('-o' ,'--outpath', type=str, help='output filepath for saving sampled sequences', default='output')
+    parser.add_argument('-ng', '--num_generations', type=int, help='number of generations', default=100)
+    parser.add_argument('-ps', '--pop_size', type=int, help='population size', default=10)
+    parser.add_argument('--max_seq_per_batch', type=int, help='population size', default=50)
+    parser.add_argument('-ed', '--evoldict', type=str, help='population size', default='flatrates')
+    parser.add_argument('--random_seq_len', type=int, help='a sequence to initiate with', default=24)
+    parser.add_argument('--norepeat', action='store_true', help='do not generate and/or select the same sequences more than once')
+    parser.add_argument('--nobackup', action='store_true', help='overwrite files if exists')
 
 
     args = parser.parse_args()
